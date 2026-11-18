@@ -1,0 +1,137 @@
+{
+  "families": {
+    "math-tool": {
+      "family": "math-tool",
+      "generated": 200,
+      "validated": 200,
+      "quarantined": 0,
+      "failures": []
+    },
+    "data-analysis": {
+      "family": "data-analysis",
+      "generated": 200,
+      "validated": 200,
+      "quarantined": 0,
+      "failures": []
+    },
+    "shell-ops": {
+      "family": "shell-ops",
+      "generated": 200,
+      "validated": 200,
+      "quarantined": 0,
+      "failures": []
+    },
+    "py-bugfix": {
+      "fixtures": [
+        {
+          "fixture": "intervals",
+          "family": "py-bugfix",
+          "mutants": 266,
+          "kept": 124,
+          "discarded": {
+            "equivalent: no test fails": 23,
+            "unfocused: more than 5 tests fail": 115,
+            "duplicate": 2,
+            "collection error or timeout": 2
+          },
+          "quarantined": 0,
+          "operators": {
+            "wrong_variable": 81,
+            "drop_branch": 5,
+            "flip_compare": 8,
+            "invert_bool": 4,
+            "off_by_one": 7,
+            "swap_args": 4,
+            "delete_statement": 13,
+            "change_constant": 2
+          },
+          "hidden_tests": 84
+        },
+        {
+          "fixture": "lrucache",
+          "family": "py-bugfix",
+          "mutants": 199,
+          "kept": 80,
+          "discarded": {
+            "equivalent: no test fails": 31,
+            "unfocused: more than 5 tests fail": 77,
+            "collection error or timeout": 7,
+            "duplicate": 4
+          },
+          "quarantined": 0,
+          "operators": {
+            "wrong_variable": 39,
+            "change_constant": 5,
+            "flip_compare": 6,
+            "drop_branch": 7,
+            "delete_statement": 19,
+            "invert_bool": 3,
+            "swap_args": 1
+          },
+          "hidden_tests": 46
+        },
+        {
+          "fixture": "ratelimit",
+          "family": "py-bugfix",
+          "mutants": 175,
+          "kept": 86,
+          "discarded": {
+            "equivalent: no test fails": 34,
+            "unfocused: more than 5 tests fail": 51,
+            "collection error or timeout": 1,
+            "duplicate": 3
+          },
+          "quarantined": 0,
+          "operators": {
+            "flip_compare": 11,
+            "invert_bool": 6,
+            "wrong_variable": 34,
+            "drop_branch": 9,
+            "delete_statement": 17,
+            "change_constant": 6,
+            "off_by_one": 2,
+            "swap_args": 1
+          },
+          "hidden_tests": 40
+        }
+      ],
+      "mutants": 640,
+      "kept": 290,
+      "quarantined": 0,
+      "validated": 290
+    },
+    "py-heavy": {
+      "fixtures": [
+        {
+          "fixture": "ledger",
+          "family": "py-heavy",
+          "mutants": 288,
+          "kept": 126,
+          "discarded": {
+            "equivalent: no test fails": 75,
+            "unfocused: more than 5 tests fail": 62,
+            "collection error or timeout": 23,
+            "duplicate": 2
+          },
+          "quarantined": 0,
+          "operators": {
+            "change_constant": 14,
+            "delete_statement": 14,
+            "wrong_variable": 75,
+            "swap_args": 5,
+            "flip_compare": 4,
+            "invert_bool": 2,
+            "off_by_one": 6,
+            "drop_branch": 6
+          },
+          "hidden_tests": 45
+        }
+      ],
+      "mutants": 288,
+      "kept": 126,
+      "quarantined": 0,
+      "validated": 126
+    }
+  },
+  "generated_at": "2026-11-17T05:26:31Z"
+}

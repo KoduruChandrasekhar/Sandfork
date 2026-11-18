@@ -1,0 +1,96 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "17 3 * * *" # nightly: the T3 benchmarks on a fresh runner
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_TARGET_DIR: /home/runner/.cache/sandfork/target
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - run: cargo fmt --all --check
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install ruff && cd python && ruff check sandfork sandfork_rl sandfork_tasks tests ../bench
+
+  # Rootless (L1). Ubuntu 24.04 restricts unprivileged user namespaces with
+  # AppArmor; this job takes the documented development route and lifts the
+  # restriction for the run.
+  rootless:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Allow unprivileged user namespaces (development route)
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+      - name: Probe
+        run: bash scripts/probe.sh | tee probe.json
+      - name: Rust tests
+        run: bash scripts/cargo.sh test --workspace
+      - name: Namespace integration
+        run: |
+          SANDFORK_REQUIRE_NS=1 bash scripts/cargo.sh test -p sandfork-spawner --test live
+          SANDFORK_REQUIRE_NS=1 PROPTEST_CASES=500 bash scripts/cargo.sh test -p sandfork-layers --test overlay_model
+      - name: Python environment
+        run: |
+          python -m venv ~/.cache/sandfork/venv
+          ~/.cache/sandfork/venv/bin/pip install -q -e "python[dev]" numpy pandas
+          ~/.cache/sandfork/venv/bin/pip install -q --index-url https://download.pytorch.org/whl/cpu torch
+          ~/.cache/sandfork/venv/bin/pip install -q transformers peft
+          PIP=~/.cache/sandfork/venv/bin/pip bash scripts/wheels.sh
+      - name: Python tests, end to end against a daemon
+        run: make test-python VENV=$HOME/.cache/sandfork/venv
+      - name: Validate a sample of generated tasks through the daemon
+        run: |
+          PYTHONPATH=python ~/.cache/sandfork/venv/bin/python -m sandfork_tasks.generate --per-family 20 --families math-tool,data-analysis,shell-ops
+          make validate-tasks VENV=$HOME/.cache/sandfork/venv
+
+  # The same suite inside a user namespace: a canary for nested-namespace
+  # assumptions.
+  nested:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+      - run: bash scripts/cargo.sh build --workspace
+      - run: unshare -Ur bash -c 'SANDFORK_REQUIRE_NS=1 bash scripts/cargo.sh test -p sandfork-layers --test overlay_model'
+
+  bench-t3:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+      - run: |
+          python -m venv ~/.cache/sandfork/venv
+          ~/.cache/sandfork/venv/bin/pip install -q -e "python[dev]" numpy pandas matplotlib
+          PIP=~/.cache/sandfork/venv/bin/pip bash scripts/wheels.sh
+          PYTHONPATH=python ~/.cache/sandfork/venv/bin/python -m sandfork_tasks.generate --families py-heavy
+      - run: make bench-t3 VENV=$HOME/.cache/sandfork/venv
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bench-results
+          path: |
+            bench/results/
+            docs/img/

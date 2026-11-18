@@ -1,0 +1,74 @@
+{
+ "experiment": "e0",
+ "fingerprint": {
+  "kernel": "6.6.87.2-microsoft-standard-WSL2",
+  "machine": "x86_64",
+  "cpu": "11th Gen Intel(R) Core(TM) i7-1165G7 @ 2.80GHz",
+  "cores": 8,
+  "memory_mb": 7824,
+  "fs": "ext2/ext3",
+  "cgroup": "cgroup2fs",
+  "distribution": "Ubuntu 26.04 LTS",
+  "virtualization": "wsl2",
+  "commit": "uncommitted",
+  "python": "3.14.4",
+  "page_cache": "warm"
+ },
+ "what": "creation-step breakdown for one L1 sandbox, from the child CLOCK_MONOTONIC marks",
+ "source": "live test churn, 200 cycles plus the suite, release build",
+ "n": 207,
+ "steps_us": {
+  "clone3": {
+   "p50": 1780,
+   "p99": 90617
+  },
+  "maps": {
+   "p50": 115,
+   "p99": 492
+  },
+  "overlay": {
+   "p50": 480,
+   "p99": 50199
+  },
+  "binds": {
+   "p50": 217,
+   "p99": 11021
+  },
+  "proc": {
+   "p50": 353,
+   "p99": 31912
+  },
+  "dev": {
+   "p50": 309,
+   "p99": 26568
+  },
+  "tmp": {
+   "p50": 88,
+   "p99": 12214
+  },
+  "pivot_root": {
+   "p50": 2582,
+   "p99": 67672
+  },
+  "net": {
+   "p50": 361,
+   "p99": 32971
+  },
+  "privs": {
+   "p50": 69,
+   "p99": 244
+  },
+  "seccomp": {
+   "p50": 495,
+   "p99": 16790
+  },
+  "exec": {
+   "p50": 892,
+   "p99": 8789
+  },
+  "total": {
+   "p50": 19380,
+   "p99": 198735
+  }
+ }
+}

@@ -1,0 +1,48 @@
+[workspace]
+resolver = "2"
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+postcard = { version = "1", default-features = false, features = ["alloc"] }
+toml = "0.8"
+blake3 = "1"
+libc = "0.2"
+thiserror = "1"
+rusqlite = { version = "0.32", features = ["bundled"] }
+seccompiler = "0.4"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "time", "sync", "signal", "io-util", "fs"] }
+tokio-stream = { version = "0.1", features = ["net"] }
+tonic = "0.12"
+prost = "0.13"
+prost-types = "0.13"
+tonic-build = "0.12"
+protoc-bin-vendored = "3"
+hyper-util = { version = "0.1", features = ["tokio"] }
+tower = { version = "0.4", features = ["util"] }
+clap = { version = "4", features = ["derive", "env"] }
+hdrhistogram = "7"
+proptest = "1"
+
+sandfork-core = { path = "crates/sandfork-core" }
+sandfork-ns = { path = "crates/sandfork-ns" }
+sandfork-seccomp = { path = "crates/sandfork-seccomp" }
+sandfork-cgroup = { path = "crates/sandfork-cgroup" }
+sandfork-layers = { path = "crates/sandfork-layers" }
+sandfork-shim = { path = "crates/sandfork-shim" }
+sandfork-spawner = { path = "crates/sandfork-spawner" }
+sandfork-proto = { path = "crates/sandfork-proto" }
+
+[profile.release]
+opt-level = 3
+debug = 1
+panic = "abort"
+
+[profile.dev]
+panic = "abort"

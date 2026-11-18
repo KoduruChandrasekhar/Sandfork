@@ -1,0 +1,19 @@
+# Build output lives under $HOME (scripts/cargo.sh), but a plain `cargo build` puts it here.
+/target/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+runs/
+
+# Generated task packs: rebuilt deterministically by `make tasks`. The
+# samples and the generation report are committed.
+/tasks/py-bugfix/*
+!/tasks/py-bugfix/sample-0001/
+/tasks/py-heavy/*
+/tasks/math-tool/*
+/tasks/shell-ops/*
+/tasks/data-analysis/*
+!/tasks/data-analysis/sample-0001/
+/tasks/fixtures/ledger/data/
+/tasks/fixtures/sales/data.npz

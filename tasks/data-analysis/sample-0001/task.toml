@@ -1,0 +1,30 @@
+[task]
+id = "data-analysis/sample-0001"
+family = "data-analysis"
+base = "python-data"
+timeout_s = 180
+max_turns = 8
+
+[prepare]
+fixture = "fixtures/sales"
+steps = ["python gen_data.py --rows 200000 --seed 1 --out data.npz"]
+warm_process = "python /.sandfork/rt/sandfork_kernel.py --loader /workspace/load.py"
+
+[agent]
+prompt = "prompt.md"
+tools = ["python", "submit"]
+allowed_paths = ["answer.txt"]
+
+[verify]
+kind = "script"
+grader = "hidden"
+command = "python -I /grader/check.py"
+timeout_s = 20
+reward = "all_or_nothing"
+total = 1
+
+[limits]
+memory_mb = 384
+pids = 64
+cpu = 1.0
+disk_mb = 64

@@ -1,0 +1,10 @@
+[package]
+name = "sandfork-seccomp"
+description = "Sandfork's seccomp denylist, as data"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+libc.workspace = true
+seccompiler.workspace = true

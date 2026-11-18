@@ -1,0 +1,10 @@
+[package]
+name = "sandfork-cgroup"
+description = "cgroup v2 for Sandfork: create, limit, freeze, kill, stats"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+sandfork-core.workspace = true
+libc.workspace = true

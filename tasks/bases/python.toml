@@ -1,0 +1,24 @@
+# The base layer for the Python task families.
+#
+# kind = "host": a skeleton root plus read-only binds of the host's /usr, the
+# way bubblewrap-style sandboxes work. The steps below run once, as the
+# sandbox's root, with the wheel cache bound read-only at /wheels and no
+# network. Their result is sealed as a layer that every task in the family
+# shares.
+#
+# Wheels are unpacked directly (a wheel is a zip of what belongs in
+# site-packages), so building a base does not depend on the host's pip.
+
+[base]
+name = "python"
+kind = "host"
+binds = ["/usr"]
+wheels = true
+steps = [
+    "/usr/bin/python3 -m venv --without-pip /opt/venv",
+    "SITE=$(/opt/venv/bin/python -c 'import sysconfig; print(sysconfig.get_paths()[\"purelib\"])'); for p in pytest iniconfig packaging pluggy pygments; do for w in /wheels/$p-*.whl; do /usr/bin/python3 -m zipfile -e \"$w\" \"$SITE\" || exit 1; done; done",
+    "/opt/venv/bin/python -m pytest --version",
+]
+
+[base.env]
+PATH = "/opt/venv/bin:/usr/local/bin:/usr/bin:/bin"

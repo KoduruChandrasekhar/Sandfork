@@ -1,0 +1,27 @@
+[package]
+name = "sandforkd"
+description = "The Sandfork daemon: API, pool, scheduler"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "sandforkd"
+path = "src/main.rs"
+
+[dependencies]
+sandfork-core.workspace = true
+sandfork-ns.workspace = true
+sandfork-cgroup.workspace = true
+sandfork-layers.workspace = true
+sandfork-spawner.workspace = true
+sandfork-proto.workspace = true
+tokio.workspace = true
+tokio-stream.workspace = true
+tonic.workspace = true
+prost.workspace = true
+prost-types.workspace = true
+clap.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+libc.workspace = true

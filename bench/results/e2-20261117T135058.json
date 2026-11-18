@@ -1,0 +1,71 @@
+{
+ "experiment": "e2",
+ "fingerprint": {
+  "kernel": "6.6.87.2-microsoft-standard-WSL2",
+  "machine": "x86_64",
+  "cpu": "11th Gen Intel(R) Core(TM) i7-1165G7 @ 2.80GHz",
+  "cores": 8,
+  "memory_mb": 7824,
+  "fs": "ext2/ext3",
+  "cgroup": "cgroup2fs",
+  "distribution": "Ubuntu 26.04 LTS",
+  "virtualization": "wsl2",
+  "commit": "uncommitted",
+  "python": "3.14.4",
+  "page_cache": "warm",
+  "loadavg_at_start": "28.41 28.67 27.89 3/1042 12791",
+  "other_busy_processes": "123 /home/chandu_koduru/vdb-build/release/tests/pq_test\n 120 head -5\n40.0 awk $1 > 2.0\n40.0 cut -c1-120\n 4.3 ctest --test-dir /home/chandu_koduru/vdb-build/release -j3"
+ },
+ "rows": [
+  {
+   "mode": "f3",
+   "g": 1,
+   "pss_mb_after_fork": 73.1630859375,
+   "pss_mb_after_query": 78.3115234375,
+   "pss_mb_after_copy": 83.654296875,
+   "includes_zygote": true
+  },
+  {
+   "mode": "f3",
+   "g": 4,
+   "pss_mb_after_fork": 78.68359375,
+   "pss_mb_after_query": 97.7333984375,
+   "pss_mb_after_copy": 119.046875,
+   "includes_zygote": true
+  },
+  {
+   "mode": "f3",
+   "g": 8,
+   "pss_mb_after_fork": 85.4931640625,
+   "pss_mb_after_query": 122.9013671875,
+   "pss_mb_after_copy": 165.4677734375,
+   "includes_zygote": true
+  },
+  {
+   "mode": "f2",
+   "g": 1,
+   "pss_mb_after_fork": 63.4140625,
+   "pss_mb_after_query": 64.009765625,
+   "pss_mb_after_copy": 68.404296875,
+   "includes_zygote": false
+  },
+  {
+   "mode": "f2",
+   "g": 4,
+   "pss_mb_after_fork": 232.326171875,
+   "pss_mb_after_query": 233.529296875,
+   "pss_mb_after_copy": 251.087890625,
+   "includes_zygote": false
+  },
+  {
+   "mode": "f2",
+   "g": 8,
+   "pss_mb_after_fork": 451.0927734375,
+   "pss_mb_after_query": 453.0869140625,
+   "pss_mb_after_copy": 488.2744140625,
+   "includes_zygote": false
+  }
+ ],
+ "note": "PSS summed over every process of every sandbox; for F3 the zygote's own processes are included once.",
+ "seconds": 37.79128426699981
+}

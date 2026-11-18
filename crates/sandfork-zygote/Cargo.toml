@@ -1,0 +1,18 @@
+[package]
+name = "sandfork-zygote"
+description = "The zygote library: copy-on-write forks of one live prepared process, with a C ABI for Python"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "sandfork_zygote"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+sandfork-core.workspace = true
+sandfork-ns.workspace = true
+sandfork-seccomp.workspace = true
+sandfork-shim.workspace = true
+seccompiler.workspace = true
+libc.workspace = true

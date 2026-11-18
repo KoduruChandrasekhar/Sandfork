@@ -1,0 +1,18 @@
+[package]
+name = "sandfork-shim"
+description = "PID 1 inside every Sandfork sandbox"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "sandfork_shim"
+path = "src/lib.rs"
+
+[[bin]]
+name = "sandfork-shim"
+path = "src/main.rs"
+
+[dependencies]
+sandfork-core.workspace = true
+libc.workspace = true

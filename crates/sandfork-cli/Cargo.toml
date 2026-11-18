@@ -1,0 +1,18 @@
+[package]
+name = "sandfork-cli"
+description = "sf: the Sandfork command-line tool"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "sf"
+path = "src/main.rs"
+
+[dependencies]
+sandfork-proto.workspace = true
+tokio.workspace = true
+tokio-stream.workspace = true
+tonic.workspace = true
+prost-types.workspace = true
+clap.workspace = true

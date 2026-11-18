@@ -1,0 +1,8 @@
+{
+  "file": "src/intervals/core.py",
+  "start_line": 35,
+  "old": ["        return self.hi + 1 == other.lo or other.hi + 1 == self.lo"],
+  "new": ["        return self.hi + 1 == other.lo or other.hi + 1 == self.hi"],
+  "operator": "wrong_variable",
+  "description": "adjacent() compares against the wrong bound"
+}

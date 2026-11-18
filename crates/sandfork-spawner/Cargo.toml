@@ -1,0 +1,27 @@
+[package]
+name = "sandfork-spawner"
+description = "The single-threaded process that creates sandboxes"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "sandfork_spawner"
+path = "src/lib.rs"
+
+[[bin]]
+name = "sandfork-spawner"
+path = "src/main.rs"
+
+[dependencies]
+sandfork-core.workspace = true
+sandfork-ns.workspace = true
+sandfork-seccomp.workspace = true
+libc.workspace = true
+
+[dev-dependencies]
+sandfork-layers.workspace = true
+
+[[test]]
+name = "live"
+harness = false

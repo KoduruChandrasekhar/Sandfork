@@ -1,0 +1,33 @@
+[task]
+id = "py-bugfix/sample-0001"
+family = "py-bugfix"
+base = "python"
+timeout_s = 180
+max_turns = 12
+
+[prepare]
+fixture = "fixtures/intervals"
+mutation = "mutation.json"
+steps = [
+    "python -m compileall -q src",
+    "python -m pytest -q --collect-only visible/",
+]
+
+[agent]
+prompt = "prompt.md"
+tools = ["bash", "read_file", "write_file", "run_tests", "submit"]
+allowed_paths = ["src/**"]
+
+[verify]
+kind = "pytest"
+grader = "fixtures/intervals/tests"
+command = "python -I -m pytest -q -p no:cacheprovider --noconftest -c /grader/pytest.ini /grader"
+timeout_s = 60
+reward = "fraction_passed"
+total = 84
+
+[limits]
+memory_mb = 512
+pids = 128
+cpu = 1.0
+disk_mb = 64

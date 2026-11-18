@@ -1,0 +1,403 @@
+// Sandfork control-plane API, version 1.
+//
+// One service, designed around groups. Every mutating call carries a
+// request_id and is idempotent: the daemon keeps the result of a completed
+// request and returns it on a retry; a retry of a call that is still running
+// attaches to it instead of running it again.
+//
+// Errors carry a class in the `sandfork-error-class` trailer:
+//   TASK    belongs to the trajectory (a command failed, timed out, ran out of memory)
+//   INFRA   the rollout is retried or dropped (a sandbox died, the spawner failed)
+//   CLIENT  a bad request
+//
+// A breaking change means package sandfork.v2.
+
+syntax = "proto3";
+
+package sandfork.v1;
+
+import "google/protobuf/duration.proto";
+
+service Sandfork {
+  // Return types that share a name with a method are written fully
+  // qualified: inside a service, the method name shadows the message.
+  rpc PrepareTask(PrepareTaskRequest) returns (.sandfork.v1.Snapshot);    // idempotent by spec hash
+  rpc ForkGroup(ForkGroupRequest) returns (Group);           // gang-admitted
+  rpc Exec(ExecRequest) returns (stream ExecEvent);
+  rpc ReadFile(ReadFileRequest) returns (FileChunk);
+  rpc WriteFile(WriteFileRequest) returns (WriteFileResult);
+  rpc Snapshot(SnapshotRequest) returns (.sandfork.v1.Snapshot);         // between turns only
+  rpc Fork(ForkRequest) returns (Group);                     // branch a running sandbox
+  rpc Verify(VerifyRequest) returns (VerifyResult);
+  rpc Checkpoint(CheckpointRequest) returns (.sandfork.v1.Checkpoint);
+  rpc Restore(RestoreRequest) returns (Group);
+  rpc Release(ReleaseRequest) returns (Empty);               // one sandbox or a whole group
+  rpc RenewLease(RenewLeaseRequest) returns (Lease);
+  rpc Stats(StatsRequest) returns (.sandfork.v1.Stats);
+  rpc Drain(DrainRequest) returns (Empty);
+
+  // Beyond the minimal surface: the stateful-process channel, inspection,
+  // and the group-aware scheduler.
+  rpc Eval(EvalRequest) returns (EvalResult);                // one request to the task's warm process
+  rpc Diff(DiffRequest) returns (DiffResult);                // what the sandbox changed
+  rpc ListSandboxes(ListSandboxesRequest) returns (SandboxList);
+  rpc RegisterTasks(RegisterTasksRequest) returns (RegisterTasksResult);
+  rpc PickTasks(PickTasksRequest) returns (PickTasksResult); // difficulty-band scheduling
+  rpc Gc(GcRequest) returns (GcResult);
+}
+
+message Empty {}
+
+enum ErrorClass {
+  ERROR_CLASS_UNSPECIFIED = 0;
+  TASK = 1;
+  INFRA = 2;
+  CLIENT = 3;
+}
+
+message Error {
+  ErrorClass class = 1;
+  string code = 2;
+  string message = 3;
+}
+
+enum ForkMode {
+  AUTO = 0;        // F3 when the task has a warm process, otherwise F2
+  F1_COLD = 1;     // preparation runs again in every sandbox: the baseline
+  F2_FS = 2;       // filesystem fork from the prepared snapshot
+  F3_ZYGOTE = 3;   // copy-on-write fork of one live prepared process
+  F4_RESTORE = 4;  // CRIU restore of the prepared checkpoint, once per sandbox
+}
+
+message Limits {
+  uint64 memory_mb = 1;
+  uint64 pids = 2;
+  double cpu = 3;       // cores
+  uint64 disk_mb = 4;   // size of the rollout's writable layer
+}
+
+// ---------------------------------------------------------------- tasks and snapshots
+
+message PrepareTaskRequest {
+  string request_id = 1;
+  string task_dir = 2;   // a directory on the daemon's host holding task.toml
+  bool force = 3;        // rebuild even if a snapshot with this spec hash exists
+}
+
+message Snapshot {
+  string id = 1;
+  string task_id = 2;
+  string kind = 3;                 // base, prepared, turn, final
+  repeated string layers = 4;      // bottom to top
+  string parent = 5;
+  uint64 created_unix = 6;
+  uint64 prepare_micros = 7;       // time spent building it (0 when cached)
+  bool cached = 8;
+  uint64 bytes_written = 9;        // bytes written at seal
+  string spec_hash = 10;
+}
+
+// ---------------------------------------------------------------- groups
+
+message ForkGroupRequest {
+  string request_id = 1;                                // idempotency key
+  string snapshot_id = 2;
+  uint32 n = 3;
+  ForkMode mode = 4;
+  Limits limits = 5;                                    // unset: the task's limits
+  google.protobuf.Duration admission_deadline = 6;
+  google.protobuf.Duration lease = 7;
+  map<string, string> labels = 8;                       // step, prompt, policy version
+}
+
+message StepTiming {
+  string name = 1;
+  uint64 micros = 2;
+}
+
+message Sandbox {
+  string id = 1;
+  string group_id = 2;
+  string task_id = 3;
+  ForkMode mode = 4;
+  string level = 5;                 // l0, l1, l2
+  uint64 fork_micros = 6;           // request to first command answered
+  repeated StepTiming steps = 7;    // creation-latency breakdown
+  string snapshot_id = 8;
+}
+
+message Lease {
+  string group_id = 1;
+  uint64 expires_unix_ms = 2;
+  uint64 token = 3;                 // fencing token; required to renew
+}
+
+message Group {
+  string id = 1;
+  repeated Sandbox sandboxes = 2;
+  Lease lease = 3;
+  uint64 queued_micros = 4;         // time spent waiting for admission
+  uint64 fork_micros = 5;           // admission to all sandboxes usable
+  ForkMode mode = 6;
+  string task_id = 7;
+}
+
+message ForkRequest {
+  string request_id = 1;
+  oneof source {
+    string snapshot_id = 2;
+    string sandbox_id = 3;          // snapshot it first, then fork
+  }
+  uint32 n = 4;
+  Limits limits = 5;
+  google.protobuf.Duration admission_deadline = 6;
+  google.protobuf.Duration lease = 7;
+  map<string, string> labels = 8;
+}
+
+message ReleaseRequest {
+  oneof target {
+    string group_id = 1;
+    string sandbox_id = 2;
+  }
+}
+
+message RenewLeaseRequest {
+  string group_id = 1;
+  google.protobuf.Duration extend = 2;
+  uint64 token = 3;
+}
+
+// ---------------------------------------------------------------- commands and files
+
+message Argv {
+  repeated string args = 1;
+}
+
+message ExecRequest {
+  string request_id = 1;
+  string sandbox_id = 2;
+  oneof command {
+    string shell = 3;
+    Argv argv = 4;
+  }
+  string cwd = 5;
+  google.protobuf.Duration timeout = 6;
+  uint32 max_output_bytes = 7;      // per stream; output past it is truncated
+  map<string, string> env = 8;
+  bytes stdin = 9;
+}
+
+message ExecExit {
+  int32 exit_code = 1;
+  int32 signal = 2;
+  bool timed_out = 3;
+  uint64 wall_ms = 4;
+  uint64 user_ms = 5;
+  uint64 sys_ms = 6;
+  uint64 max_rss_kb = 7;
+  bool truncated = 8;
+  uint64 dropped_bytes = 9;
+  bytes tail_stdout = 10;           // the last bytes after the forwarded head
+  bytes tail_stderr = 11;
+  bool oom_killed = 12;
+  bool cancelled = 13;
+}
+
+message ExecEvent {
+  oneof event {
+    bytes stdout = 1;
+    bytes stderr = 2;
+    ExecExit exit = 3;
+  }
+}
+
+message ReadFileRequest {
+  string sandbox_id = 1;
+  string path = 2;                  // relative to the workspace, or absolute inside the sandbox
+  uint64 offset = 3;
+  uint32 max_bytes = 4;
+}
+
+message FileChunk {
+  bytes data = 1;
+  bool eof = 2;
+  uint64 size = 3;
+}
+
+message WriteFileRequest {
+  string request_id = 1;
+  string sandbox_id = 2;
+  string path = 3;
+  bytes data = 4;
+  uint32 mode = 5;
+  bool append = 6;
+}
+
+message WriteFileResult {
+  uint64 bytes_written = 1;
+}
+
+message EvalRequest {
+  string request_id = 1;
+  string sandbox_id = 2;
+  string code = 3;
+  google.protobuf.Duration timeout = 4;
+}
+
+message EvalResult {
+  bool ok = 1;                      // false: the code raised
+  string output = 2;
+}
+
+// ---------------------------------------------------------------- snapshots, checkpoints, verification
+
+message SnapshotRequest {
+  string request_id = 1;
+  string sandbox_id = 2;
+  string kind = 3;                  // turn (default) or final
+}
+
+message CheckpointRequest {
+  string request_id = 1;
+  string sandbox_id = 2;
+  uint32 turn = 3;
+}
+
+message Checkpoint {
+  string id = 1;
+  string sandbox_id = 2;
+  string snapshot_id = 3;
+  uint32 turn = 4;
+  bool has_process_image = 5;       // false: filesystem-only checkpoint
+  uint64 bytes_written = 6;
+  uint64 micros = 7;
+}
+
+message RestoreRequest {
+  string request_id = 1;
+  string checkpoint_id = 2;
+  uint32 n = 3;                     // 0 means 1
+  google.protobuf.Duration admission_deadline = 4;
+  google.protobuf.Duration lease = 5;
+  map<string, string> labels = 6;
+}
+
+message VerifyRequest {
+  string request_id = 1;
+  string sandbox_id = 2;
+}
+
+message DiffStats {
+  uint32 files = 1;
+  uint32 lines_added = 2;
+  uint32 lines_removed = 3;
+  repeated string rejected_paths = 4;   // changes outside allowed_paths, discarded
+  repeated string flags = 5;            // static-scan hits on accepted files
+}
+
+message VerifyResult {
+  string status = 1;                // ok, infra_error, timeout
+  optional double reward = 2;       // unset for infra_error: never zero
+  uint32 passed = 3;
+  uint32 total = 4;
+  string verifier_version = 5;
+  uint64 duration_ms = 6;
+  DiffStats diff = 7;
+  Error error = 8;
+  string output_tail = 9;
+}
+
+message DiffRequest {
+  string sandbox_id = 1;
+  bool text = 2;                    // include unified diffs for text files up to 1 MB
+}
+
+message FileChange {
+  string path = 1;
+  string kind = 2;                  // added, modified, deleted
+  bool is_dir = 3;
+  uint64 size = 4;
+  string text_diff = 5;
+}
+
+message DiffResult {
+  repeated FileChange changes = 1;
+  uint32 lines_added = 2;
+  uint32 lines_removed = 3;
+}
+
+// ---------------------------------------------------------------- pool, scheduler, maintenance
+
+message ListSandboxesRequest {}
+
+message SandboxInfo {
+  string id = 1;
+  string group_id = 2;
+  string task_id = 3;
+  ForkMode mode = 4;
+  string state = 5;                 // live, dead, oom
+  uint64 age_ms = 6;
+  uint64 memory_bytes = 7;
+  string purpose = 8;               // rollout, verify, prepare, zygote
+  uint64 execs = 9;
+}
+
+message SandboxList {
+  repeated SandboxInfo sandboxes = 1;
+}
+
+message RegisterTasksRequest {
+  repeated string task_dirs = 1;
+}
+
+message RegisterTasksResult {
+  uint32 registered = 1;
+  repeated Error errors = 2;
+}
+
+message PickTasksRequest {
+  uint32 n = 1;
+  uint32 group_size = 2;            // G in 1 - p^G - (1-p)^G
+  string strategy = 3;              // band (default) or uniform
+  string family = 4;                // empty: any family
+  uint64 seed = 5;                  // 0: from entropy
+  bool new_epoch = 6;               // decay every posterior before picking
+}
+
+message TaskPick {
+  string task_id = 1;
+  string task_dir = 2;
+  double pass_estimate = 3;         // posterior mean
+  double usefulness = 4;            // sampled 1 - p^G - (1-p)^G
+}
+
+message PickTasksResult {
+  repeated TaskPick tasks = 1;
+}
+
+message GcRequest {
+  uint64 grace_seconds = 1;
+  uint64 budget_bytes = 2;          // 0: no budget
+}
+
+message GcResult {
+  uint64 snapshots_removed = 1;
+  uint64 layers_removed = 2;
+  uint64 orphans_removed = 3;
+  uint64 bytes_freed = 4;
+  uint64 bytes_total = 5;
+}
+
+message StatsRequest {}
+
+message Stats {
+  map<string, double> values = 1;   // counters and gauges by name
+  string prometheus = 2;            // the same, in Prometheus text format
+  string level = 3;
+  string version = 4;
+}
+
+message DrainRequest {
+  google.protobuf.Duration grace = 1;
+}

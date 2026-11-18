@@ -1,0 +1,5 @@
+--- a/src/intervals/core.py
++++ b/src/intervals/core.py
+@@ -35 +35 @@
+-        return self.hi + 1 == other.lo or other.hi + 1 == self.hi
++        return self.hi + 1 == other.lo or other.hi + 1 == self.lo

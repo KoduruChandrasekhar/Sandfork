@@ -1,0 +1,7 @@
+# The base layer for shell-ops and math-tool tasks: the host's /usr and
+# nothing else. No preparation steps, so building it costs one skeleton layer.
+
+[base]
+name = "shell"
+kind = "host"
+binds = ["/usr"]

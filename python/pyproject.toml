@@ -1,0 +1,38 @@
+[project]
+name = "sandfork"
+version = "0.1.0"
+description = "Python SDK, rollout orchestrator and minimal GRPO trainer for Sandfork"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+dependencies = ["grpcio>=1.60", "protobuf>=4.25"]
+
+[project.optional-dependencies]
+rl = ["torch>=2.2", "transformers>=4.40", "peft>=0.10", "numpy>=1.26"]
+dev = ["pytest>=8", "pytest-asyncio>=0.23", "hypothesis>=6", "grpcio-tools>=1.60", "ruff>=0.5", "mypy>=1.10"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["sandfork*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+markers = ["daemon: needs a running sandforkd (SANDFORK_SOCKET)"]
+
+[tool.ruff]
+line-length = 200
+target-version = "py312"
+extend-exclude = ["sandfork/v1"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+ignore = ["E501", "B008", "UP007", "UP045"]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+exclude = ["sandfork/v1/"]

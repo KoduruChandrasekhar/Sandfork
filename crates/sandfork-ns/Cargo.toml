@@ -1,0 +1,13 @@
+[package]
+name = "sandfork-ns"
+description = "Namespaces, uid maps, mounts, pivot_root, rlimits: building one sandbox from raw syscalls"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+sandfork-core.workspace = true
+sandfork-seccomp.workspace = true
+seccompiler.workspace = true
+libc.workspace = true
+serde.workspace = true
